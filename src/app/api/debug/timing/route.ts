@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
+import { getDefaultResultOrder } from "node:dns";
 import { createClient } from "@/lib/supabase/server";
 
 export async function GET() {
   const marks: Record<string, number> = {};
+  const diag = {
+    runtime: process.env.NEXT_RUNTIME,
+    dnsOrder: getDefaultResultOrder(),
+    nodeVersion: process.version,
+  };
   const t0 = Date.now();
 
   const supabase = await createClient();
@@ -26,5 +32,5 @@ export async function GET() {
 
   marks.total = Date.now() - t0;
 
-  return NextResponse.json({ marks });
+  return NextResponse.json({ marks, diag });
 }
