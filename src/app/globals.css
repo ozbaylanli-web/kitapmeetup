@@ -1,0 +1,294 @@
+@import "tailwindcss";
+
+/*
+  Kitapmeetup tasarım dili: gün batımı turuncusu + sıcak "kitap sayfası" kremi.
+  Bilinçli olarak tek (açık) temalı: içerik-yoğun, edebi bir uygulama için
+  sıcak kağıt hissi korunuyor — sistem karanlık modunu takip etmiyor.
+*/
+
+:root {
+  color-scheme: light;
+
+  /* Nötrler — kitap sayfası hissi */
+  --paper: #fbf3e6;
+  --paper-elevated: #fffdf8;
+  --paper-sunken: #f3e8d6;
+  --ink: #201811;
+  --ink-soft: #4a3d31;
+  --ink-muted: #83715f;
+  --line: #e8dac0;
+  --line-strong: #d9c6a3;
+
+  /* Marka turuncusu — @kitapmeetup logosundan ilhamla */
+  --orange-50: #fff4ea;
+  --orange-100: #ffe4cc;
+  --orange-200: #ffc79a;
+  --orange-300: #fea363;
+  --orange-400: #fb7f3a;
+  --orange-500: #f0611f;
+  --orange-600: #d24915;
+  --orange-700: #ab3812;
+  --orange-800: #802a11;
+  --orange-900: #551b0b;
+
+  /* Kulüp vurgu renkleri */
+  --club-felsefe: #6f5a94;
+  --club-bilimkurgu: #146b62;
+  --club-siir: #c05f82;
+  --club-distopya: #35594d;
+  --club-default: var(--orange-500);
+
+  /* Semantik */
+  --success: #3f7d52;
+  --info: #3e6c93;
+  --warning: #b8791b;
+  --danger: #ab3a34;
+
+  /* Yaldız — rozetler, "öne çıkan" etiketler ve küçük kutlama anları için;
+     turuncuyla çatışmadan kitap cildi/yaldız hissi katar. */
+  --gold-300: #e8cd85;
+  --gold-500: #c9a227;
+  --gold-600: #a67c1f;
+
+  --radius-sm: 0.5rem;
+  --radius-md: 0.85rem;
+  --radius-lg: 1.25rem;
+  --radius-xl: 1.75rem;
+
+  --shadow-card: 0 1px 2px rgba(32, 24, 17, 0.06), 0 8px 24px -12px rgba(32, 24, 17, 0.18);
+  --shadow-pop: 0 12px 32px -8px rgba(32, 24, 17, 0.28);
+  --shadow-glow: 0 0 0 1px rgba(240, 97, 31, 0.12), 0 10px 30px -10px rgba(240, 97, 31, 0.35);
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-paper-elevated: var(--paper-elevated);
+  --color-paper-sunken: var(--paper-sunken);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-muted: var(--ink-muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-orange-50: var(--orange-50);
+  --color-orange-100: var(--orange-100);
+  --color-orange-200: var(--orange-200);
+  --color-orange-300: var(--orange-300);
+  --color-orange-400: var(--orange-400);
+  --color-orange-500: var(--orange-500);
+  --color-orange-600: var(--orange-600);
+  --color-orange-700: var(--orange-700);
+  --color-orange-800: var(--orange-800);
+  --color-orange-900: var(--orange-900);
+
+  --color-club-felsefe: var(--club-felsefe);
+  --color-club-bilimkurgu: var(--club-bilimkurgu);
+  --color-club-siir: var(--club-siir);
+  --color-club-distopya: var(--club-distopya);
+  --color-club-default: var(--club-default);
+
+  --color-success: var(--success);
+  --color-info: var(--info);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+
+  --color-gold-300: var(--gold-300);
+  --color-gold-500: var(--gold-500);
+  --color-gold-600: var(--gold-600);
+
+  --font-serif: var(--font-fraunces);
+  --font-sans: var(--font-manrope);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  /* Telefonda yatay taşmayı kesin olarak engelle — tek sorumlu kaynak burada,
+     bileşenlerdeki yanlışlıkla oluşan taşma bile sayfayı kaydırmasın. */
+  overflow-x: hidden;
+  position: relative;
+}
+
+/*
+ * "Kitapçı" dokusu: sabit, çok hafif bir kağıt tanesi (grain) + üst köşede
+ * gün batımı parıltısı. İkisi de body'nin ARKASINDA sabit durur (fixed),
+ * sayfa akışını etkilemez, scroll'da yeniden boyanmaz (performans).
+ * Doku, feTurbulence ile üretilmiş tek satırlık bir SVG data-URI'dir —
+ * dışarıdan hiçbir görsel indirilmez.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.4  0 0 0 0 0.32  0 0 0 0 0.22  0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+body::after {
+  content: "";
+  position: fixed;
+  top: -12vh;
+  right: -18vw;
+  z-index: 0;
+  width: 70vw;
+  height: 55vh;
+  pointer-events: none;
+  background: radial-gradient(closest-side, rgba(254, 163, 99, 0.22), rgba(254, 163, 99, 0) 72%);
+}
+
+body > div {
+  position: relative;
+  z-index: 1;
+}
+
+html,
+body {
+  max-width: 100vw;
+}
+
+/* Mobil dokunma hedefleri ve iOS'un input odağında otomatik yakınlaştırmasını
+   engellemek için (16px altı font-size input'a odaklanınca zoom tetikler). */
+@media (max-width: 640px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/*
+ * Flex/grid öğeleri varsayılan olarak `min-width: auto` alır — yani içeriğinin
+ * "büzülmeden" gereken minimum genişliğinin altına inemezler. Özellikle
+ * `<input type="date">` / `type="datetime-local">` gibi elemanların bazı
+ * mobil tarayıcılarda geniş bir doğal minimum genişliği olur; bu da onu
+ * içeren grid/flex satırını, dolayısıyla TÜM SAYFAYI viewport'tan taşırır.
+ * Sonuç: tarayıcı sayfayı küçültüp sığdırır → "her sayfa farklı boyutta,
+ * navigasyon da küçülüyor" hissi. Form kontrollerini burada, tek yerden,
+ * her zaman büzülebilir hale getiriyoruz.
+ */
+input,
+select,
+textarea,
+button {
+  min-width: 0;
+  max-width: 100%;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+::selection {
+  background: var(--orange-200);
+  color: var(--orange-900);
+}
+
+/* Basit, sıcak bir scrollbar — Kitapmeetup'ın "kağıt" hissini bozmasın */
+* {
+  scrollbar-color: var(--line-strong) transparent;
+}
+
+.paper-card {
+  background: var(--paper-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+
+.sunset-gradient {
+  background: linear-gradient(160deg, var(--orange-300) 0%, var(--orange-500) 45%, var(--orange-700) 100%);
+}
+
+/* Yaldız rozet/etiket — rozetler, "öne çıkan" kartlar ve kutlama anları için. */
+.gold-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--gold-600);
+  background: linear-gradient(135deg, #fff8e6, var(--gold-300) 160%);
+  border: 1px solid rgba(166, 124, 31, 0.35);
+}
+
+/* Alıntı kartları için dekoratif, büyük tırnak işareti — arka planda, çok soluk. */
+.quote-mark::before {
+  content: "\201C";
+  position: absolute;
+  top: -0.35em;
+  left: 0.1em;
+  font-family: var(--font-serif);
+  font-size: 4.5em;
+  line-height: 1;
+  color: var(--orange-300);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* react-markdown çıktısı için hafif tipografi — @tailwindcss/typography kullanmadan */
+.prose-academy h1,
+.prose-academy h2,
+.prose-academy h3 {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  color: var(--ink);
+  margin-top: 1.4em;
+  margin-bottom: 0.5em;
+}
+.prose-academy h1 { font-size: 1.4em; }
+.prose-academy h2 { font-size: 1.2em; }
+.prose-academy h3 { font-size: 1.05em; }
+.prose-academy p { margin-bottom: 1em; }
+.prose-academy ul,
+.prose-academy ol {
+  margin: 0 0 1em 1.25em;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35em;
+}
+.prose-academy ul { list-style: disc; }
+.prose-academy ol { list-style: decimal; }
+.prose-academy strong { color: var(--ink); font-weight: 700; }
+.prose-academy blockquote {
+  border-left: 3px solid var(--orange-300);
+  padding-left: 1em;
+  font-style: italic;
+  color: var(--ink-soft);
+  margin: 1em 0;
+}
+.prose-academy a { color: var(--orange-600); text-decoration: underline; }
+.prose-academy code {
+  background: var(--paper-sunken);
+  border-radius: 0.3em;
+  padding: 0.1em 0.4em;
+  font-size: 0.9em;
+}
+
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
