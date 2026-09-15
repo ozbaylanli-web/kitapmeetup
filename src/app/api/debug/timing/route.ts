@@ -4,7 +4,10 @@ import https from "node:https";
 import { createClient } from "@/lib/supabase/server";
 
 const SUPA_HOST = "yyasamqdineujcafwctc.supabase.co";
-const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Gecici tanilama icin sabit kodlanmis - bu genel/public "anon" anahtar,
+// gizli degil (RLS ile korunuyor), .env.local'daki degerle ayni.
+const ANON_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5YXNhbXFkaW5ldWpjYWZ3Y3RjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk0OTc1MDUsImV4cCI6MjEwNTA3MzUwNX0.1bDH6yKevkZPxTUf3lHC1NJj4OJQQpxLv_qAbp7zWN8";
 
 function rawHttpsGet(path: string): Promise<number> {
   return new Promise((resolve, reject) => {
