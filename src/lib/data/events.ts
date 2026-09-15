@@ -14,10 +14,20 @@ export async function getEvents(): Promise<EventSummary[]> {
   const rows = eventRows ?? [];
   if (rows.length === 0) return [];
 
-  const authorMap = await fetchAuthorsByIds(supabase, rows.map((r) => r.created_by).filter((id): id is string => Boolean(id)));
-
   const clubIds = Array.from(new Set(rows.map((r) => r.club_id).filter((id): id is string => Boolean(id))));
-  const { data: clubRows } = clubIds.length ? await supabase.from("clubs").select("*").in("id", clubIds) : { data: [] };
+  const venueIds = Array.from(new Set(rows.map((r) => r.venue_id).filter((id): id is string => Boolean(id))));
+  const eventIds = rows.map((r) => r.id);
+
+  // Bu 5 sorgu birbirinden bağımsız — hepsi sadece `rows`tan (yukarıda zaten
+  // elimizde) türetiliyor, teker teker beklemek yerine paralel çekiyoruz.
+  const [authorMap, { data: clubRows }, { data: venueRows }, { data: rsvpRows }, currentUser] = await Promise.all([
+    fetchAuthorsByIds(supabase, rows.map((r) => r.created_by).filter((id): id is string => Boolean(id))),
+    clubIds.length ? supabase.from("clubs").select("*").in("id", clubIds) : Promise.resolve({ data: [] }),
+    venueIds.length ? supabase.from("venues").select("*").in("id", venueIds) : Promise.resolve({ data: [] }),
+    eventIds.length ? supabase.from("event_rsvps").select("*").in("event_id", eventIds) : Promise.resolve({ data: [] }),
+    getCurrentUser(),
+  ]);
+
   const clubMap = new Map<string, ClubSummary>(
     (clubRows ?? []).map((c) => [
       c.id,
@@ -25,8 +35,6 @@ export async function getEvents(): Promise<EventSummary[]> {
     ])
   );
 
-  const venueIds = Array.from(new Set(rows.map((r) => r.venue_id).filter((id): id is string => Boolean(id))));
-  const { data: venueRows } = venueIds.length ? await supabase.from("venues").select("*").in("id", venueIds) : { data: [] };
   const venueMap = new Map<string, VenueSummary>(
     (venueRows ?? []).map((v) => [
       v.id,
@@ -34,11 +42,8 @@ export async function getEvents(): Promise<EventSummary[]> {
     ])
   );
 
-  const eventIds = rows.map((r) => r.id);
-  const { data: rsvpRows } = eventIds.length ? await supabase.from("event_rsvps").select("*").in("event_id", eventIds) : { data: [] };
   const going = new Map<string, number>();
   const interested = new Map<string, number>();
-  const currentUser = await getCurrentUser();
   const myRsvpMap = new Map<string, RsvpStatus>();
   (rsvpRows ?? []).forEach((r) => {
     if (r.status === "going") going.set(r.event_id, (going.get(r.event_id) ?? 0) + 1);
