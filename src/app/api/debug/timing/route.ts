@@ -57,11 +57,13 @@ export async function GET() {
   const supabase = await createClient();
   marks.createClient = Date.now() - t0;
 
+  let queryResult: unknown = null;
   if (supabase) {
     const t1 = Date.now();
-    await supabase.from("clubs").select("*");
+    const { data, error, status, statusText } = await supabase.from("clubs").select("*");
     marks.clubsQuery = Date.now() - t1;
+    queryResult = { data, error, status, statusText };
   }
 
-  return NextResponse.json({ marks, diag });
+  return NextResponse.json({ marks, diag, queryResult });
 }
