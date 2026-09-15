@@ -1,36 +1,68 @@
 import { NextResponse } from "next/server";
 import { getDefaultResultOrder } from "node:dns";
+import https from "node:https";
 import { createClient } from "@/lib/supabase/server";
 
+const SUPA_HOST = "yyasamqdineujcafwctc.supabase.co";
+const ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+function rawHttpsGet(path: string): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const t0 = Date.now();
+    const req = https.get(
+      {
+        host: SUPA_HOST,
+        path,
+        headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` },
+        timeout: 15000,
+      },
+      (res) => {
+        res.on("data", () => {});
+        res.on("end", () => resolve(Date.now() - t0));
+      }
+    );
+    req.on("error", (e) => reject(e));
+    req.on("timeout", () => reject(new Error("raw https timeout")));
+  });
+}
+
 export async function GET() {
-  const marks: Record<string, number> = {};
+  const marks: Record<string, number | string> = {};
   const diag = {
     runtime: process.env.NEXT_RUNTIME,
     dnsOrder: getDefaultResultOrder(),
     nodeVersion: process.version,
   };
-  const t0 = Date.now();
 
+  // 1) Node'un cekirdek https modulu ile dogrudan - fetch/undici'yi tamamen atlatir.
+  try {
+    marks.rawHttps = await rawHttpsGet("/rest/v1/clubs?select=id");
+  } catch (e) {
+    marks.rawHttps = `error: ${e instanceof Error ? e.message : String(e)}`;
+  }
+
+  // 2) Global fetch(), acik cache: no-store ile - Next.js'in fetch yamasini devre disi birakir.
+  const tf1 = Date.now();
+  try {
+    await fetch(`https://${SUPA_HOST}/rest/v1/clubs?select=id`, {
+      headers: { apikey: ANON_KEY, Authorization: `Bearer ${ANON_KEY}` },
+      cache: "no-store",
+    });
+    marks.fetchNoStore = Date.now() - tf1;
+  } catch (e) {
+    marks.fetchNoStore = `error: ${e instanceof Error ? e.message : String(e)}`;
+  }
+
+  // 3) supabase-js istemcisi uzerinden (uygulamanin gercekte kullandigi yol).
+  const t0 = Date.now();
   const supabase = await createClient();
   marks.createClient = Date.now() - t0;
 
-  if (!supabase) {
-    return NextResponse.json({ error: "no supabase client", marks });
+  if (supabase) {
+    const t1 = Date.now();
+    await supabase.from("clubs").select("*");
+    marks.clubsQuery = Date.now() - t1;
   }
-
-  const t1 = Date.now();
-  await supabase.from("clubs").select("*");
-  marks.clubsQuery = Date.now() - t1;
-
-  const t2 = Date.now();
-  await supabase.from("club_members").select("club_id");
-  marks.clubMembersQuery = Date.now() - t2;
-
-  const t3 = Date.now();
-  await Promise.all([supabase.from("clubs").select("*"), supabase.from("club_members").select("club_id")]);
-  marks.parallelBoth = Date.now() - t3;
-
-  marks.total = Date.now() - t0;
 
   return NextResponse.json({ marks, diag });
 }
