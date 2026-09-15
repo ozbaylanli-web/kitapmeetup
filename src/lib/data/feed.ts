@@ -33,48 +33,49 @@ export async function getFeedPosts(opts?: { clubId?: string; bookIds?: string[] 
   const { data: postRows } = await query;
   if (!postRows || postRows.length === 0) return [];
 
-  const authorMap = await fetchAuthorsByIds(supabase, postRows.map((p) => p.author_id));
-  const bookMap = await fetchBooksByIds(
-    supabase,
-    postRows.flatMap((p) => [p.book_id, p.counter_book_id]).filter((id): id is string => Boolean(id))
-  );
-
   const clubIds = Array.from(new Set(postRows.map((p) => p.club_id).filter((id): id is string => Boolean(id))));
-  const { data: clubRows } = clubIds.length
-    ? await supabase.from("clubs").select("*").in("id", clubIds)
-    : { data: [] as { id: string; slug: string; name: string; icon: string; color: string; description: string }[] };
+  const eventIds = Array.from(new Set(postRows.map((p) => p.event_id).filter((id): id is string => Boolean(id))));
+  const postIds = postRows.map((p) => p.id);
+  const swapPostIds = postRows.filter((p) => isSwapType(p.type)).map((p) => p.id);
+
+  // Aşağıdaki 8 sorgu birbirinden bağımsız (hepsi sadece `postRows`tan türetiliyor)
+  // — teker teker beklemek yerine tek seferde paralel çekiyoruz.
+  const [authorMap, bookMap, { data: clubRows }, { data: eventRows }, { data: likeRows }, currentUser, { data: commentRows }, { data: offerRows }] =
+    await Promise.all([
+      fetchAuthorsByIds(supabase, postRows.map((p) => p.author_id)),
+      fetchBooksByIds(
+        supabase,
+        postRows.flatMap((p) => [p.book_id, p.counter_book_id]).filter((id): id is string => Boolean(id))
+      ),
+      clubIds.length
+        ? supabase.from("clubs").select("*").in("id", clubIds)
+        : Promise.resolve({ data: [] as { id: string; slug: string; name: string; icon: string; color: string; description: string }[] }),
+      eventIds.length
+        ? supabase.from("events").select("id, slug, title, starts_at").in("id", eventIds)
+        : Promise.resolve({ data: [] as { id: string; slug: string; title: string; starts_at: string }[] }),
+      supabase.from("post_likes").select("post_id, user_id").in("post_id", postIds),
+      getCurrentUser(),
+      supabase.from("comments").select("target_id").eq("target_type", "post").in("target_id", postIds),
+      swapPostIds.length
+        ? supabase.from("swap_offers").select("post_id, offerer_id, status").in("post_id", swapPostIds)
+        : Promise.resolve({ data: [] as { post_id: string; offerer_id: string; status: string }[] }),
+    ]);
+
   const clubMap = new Map(
     (clubRows ?? []).map((c) => [c.id, { id: c.id, slug: c.slug, name: c.name, icon: c.icon, color: c.color, description: c.description, memberCount: 0 }])
   );
-
-  const eventIds = Array.from(new Set(postRows.map((p) => p.event_id).filter((id): id is string => Boolean(id))));
-  const { data: eventRows } = eventIds.length
-    ? await supabase.from("events").select("id, slug, title, starts_at").in("id", eventIds)
-    : { data: [] as { id: string; slug: string; title: string; starts_at: string }[] };
   const eventMap = new Map((eventRows ?? []).map((e) => [e.id, { slug: e.slug, title: e.title, startsAt: e.starts_at }]));
 
-  const postIds = postRows.map((p) => p.id);
-  const { data: likeRows } = await supabase.from("post_likes").select("post_id, user_id").in("post_id", postIds);
   const likeCounts = new Map<string, number>();
   const myLikes = new Set<string>();
-  const currentUser = await getCurrentUser();
   (likeRows ?? []).forEach((l) => {
     likeCounts.set(l.post_id, (likeCounts.get(l.post_id) ?? 0) + 1);
     if (currentUser && l.user_id === currentUser.id) myLikes.add(l.post_id);
   });
 
-  const { data: commentRows } = await supabase
-    .from("comments")
-    .select("target_id")
-    .eq("target_type", "post")
-    .in("target_id", postIds);
   const commentCounts = new Map<string, number>();
   (commentRows ?? []).forEach((c) => commentCounts.set(c.target_id, (commentCounts.get(c.target_id) ?? 0) + 1));
 
-  const swapPostIds = postRows.filter((p) => isSwapType(p.type)).map((p) => p.id);
-  const { data: offerRows } = swapPostIds.length
-    ? await supabase.from("swap_offers").select("post_id, offerer_id, status").in("post_id", swapPostIds)
-    : { data: [] as { post_id: string; offerer_id: string; status: string }[] };
   const offerCounts = new Map<string, number>();
   const myOfferStatus = new Map<string, string>();
   (offerRows ?? []).forEach((o) => {
