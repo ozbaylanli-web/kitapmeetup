@@ -26,12 +26,31 @@ function rawHttpsGet(path: string): Promise<number> {
   });
 }
 
+function scanForBadChars(s: string) {
+  const bad: { index: number; code: number; char: string }[] = [];
+  for (let i = 0; i < s.length; i++) {
+    const code = s.charCodeAt(i);
+    // JWT/base64url gecerli karakterler disinda ne varsa raporla.
+    if (!/[A-Za-z0-9_.\-]/.test(s[i])) {
+      bad.push({ index: i, code, char: s[i] });
+    }
+  }
+  return bad;
+}
+
 export async function GET() {
   const marks: Record<string, number | string> = {};
+  const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
   const diag = {
     runtime: process.env.NEXT_RUNTIME,
     dnsOrder: getDefaultResultOrder(),
     nodeVersion: process.version,
+    keyLength: rawKey.length,
+    keyBadChars: scanForBadChars(rawKey),
+    keyStart: rawKey.slice(0, 12),
+    keyEnd: rawKey.slice(-12),
+    urlValue: rawUrl,
   };
 
   // 1) Node'un cekirdek https modulu ile dogrudan - fetch/undici'yi tamamen atlatir.
