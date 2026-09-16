@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Users2, ChevronRight } from "lucide-react";
+import { HeartHandshake, ChevronRight } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { getBookMatches } from "@/lib/data/matches";
 
@@ -13,7 +13,7 @@ export async function MatchesTeaser() {
       className="paper-card mb-4 flex items-center gap-3 p-3.5 transition-transform hover:-translate-y-0.5"
     >
       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--orange-100)] text-[var(--orange-600)]">
-        <Users2 size={18} />
+        <HeartHandshake size={18} />
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold text-[var(--ink)]">

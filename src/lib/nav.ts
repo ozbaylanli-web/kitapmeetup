@@ -1,4 +1,4 @@
-import { Home, Users, Users2, CalendarDays, MessageCircle } from "lucide-react";
+import { Home, Users, HeartHandshake, CalendarDays, MessageCircle } from "lucide-react";
 
 // Blog ve Akademi kaldırılmadı — ikisi de hâlâ var ve çalışıyor, sadece ana
 // navigasyondan çıkarıldı:
@@ -10,7 +10,7 @@ import { Home, Users, Users2, CalendarDays, MessageCircle } from "lucide-react";
 // eklendi (5 sekme, Mesajlar merkezde).
 export const NAV_ITEMS = [
   { href: "/", label: "Ana Akış", icon: Home },
-  { href: "/eslesmeler", label: "Eşleşmeler", icon: Users2 },
+  { href: "/eslesmeler", label: "Eşleşmeler", icon: HeartHandshake },
   { href: "/mesajlar", label: "Mesajlar", icon: MessageCircle },
   { href: "/kulupler", label: "Kulüpler", icon: Users },
   { href: "/etkinlikler", label: "Etkinlikler", icon: CalendarDays },
