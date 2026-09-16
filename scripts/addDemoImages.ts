@@ -13,6 +13,14 @@
  *  - i.pravatar.cc   → gerçekçi sahte profil fotoğrafları
  *  - loremflickr.com → gönderinin/kulübün/etkinliğin İÇERİĞİYLE ilgili
  *    ANAHTAR KELİMEYE göre gerçek stok fotoğraf (kitap, kahve, kütüphane vb.)
+ *  - picsum.photos   → loremflickr'ın HİÇBİR adayı çalışmazsa son çare
+ *    (konuyla ilgisiz ama en azından her zaman gerçek bir görsel döner)
+ *
+ * ÖNEMLİ: loremflickr bazı çok özel/bileşik anahtar kelime kombinasyonlarında
+ * (Flickr'da o etiketle eşleşen fotoğraf bulamayınca) güvenilir biçimde 500
+ * hatası veriyor. Bu yüzden her aday URL, veritabanına yazılmadan ÖNCE gerçek
+ * bir HEAD isteğiyle doğrulanıyor (verifyImageUrl) — kırık görsel linki asla
+ * kaydedilmez.
  *
  * Kullanım: npm run db:seed:images
  */
@@ -42,46 +50,67 @@ function lockFor(seed: string): number {
   return h % 100000;
 }
 
-function loremflickrUrl(keywords: string, seed: string, w = 800, h = 600): string {
+function loremflickrUrl(keywords: string, seed: string, w: number, h: number): string {
   return `https://loremflickr.com/${w}/${h}/${keywords}?lock=${lockFor(seed)}`;
 }
+function picsumUrl(seed: string, w: number, h: number): string {
+  return `https://picsum.photos/seed/${encodeURIComponent(seed)}/${w}/${h}`;
+}
 
-// Gönderi metnindeki ipuçlarına göre konuyla ilgili anahtar kelime seç -
-// bulunamazsa genel "books,reading"a düşer. Sıra önemli: daha özel
-// eşleşmeler üstte.
-const POST_KEYWORD_RULES: { match: RegExp; keywords: string }[] = [
-  { match: /kahve|çay/i, keywords: "coffee,book" },
-  { match: /kütüphane/i, keywords: "library,bookshelf" },
-  { match: /kitapçı/i, keywords: "bookstore,books" },
-  { match: /ayracımı|ayracı/i, keywords: "bookmark,book" },
-  { match: /raf|kitaplığımı|kitaplığındaki/i, keywords: "bookshelf,books" },
-  { match: /notlarım/i, keywords: "notebook,book" },
-  { match: /park/i, keywords: "park,reading" },
-  { match: /battaniye|yağmurlu/i, keywords: "cozy,book,blanket" },
-  { match: /yeni kitap|yeni gelen/i, keywords: "newbooks,stack" },
-  { match: /metroda|tren/i, keywords: "train,book" },
+async function verifyImageUrl(url: string): Promise<boolean> {
+  try {
+    const res = await fetch(url, { method: "HEAD", redirect: "follow" });
+    return res.ok && (res.headers.get("content-type") ?? "").startsWith("image/");
+  } catch {
+    return false;
+  }
+}
+
+/** Anahtar kelime adaylarını sırayla dener (her biri gerçek bir HEAD isteğiyle doğrulanır), hiçbiri çalışmazsa picsum'a düşer. */
+async function pickWorkingImageUrl(keywordCandidates: string[], seed: string, w = 800, h = 600): Promise<string> {
+  for (const keywords of keywordCandidates) {
+    const url = loremflickrUrl(keywords, seed, w, h);
+    if (await verifyImageUrl(url)) return url;
+  }
+  return picsumUrl(seed, w, h);
+}
+
+// Gönderi metnindeki ipuçlarına göre konuyla ilgili anahtar kelime adayları
+// seç (en özelden en genele) - bulunamazsa genel "books,reading"a düşer.
+// Sıra önemli: daha özel eşleşmeler üstte.
+const POST_KEYWORD_RULES: { match: RegExp; candidates: string[] }[] = [
+  { match: /kahve|çay/i, candidates: ["coffee,book", "coffee,books"] },
+  { match: /kütüphane/i, candidates: ["library,books", "library"] },
+  { match: /kitapçı/i, candidates: ["bookstore", "books,bookstore"] },
+  { match: /ayracımı|ayracı/i, candidates: ["bookmark,book", "bookmark"] },
+  { match: /raf|kitaplığımı|kitaplığındaki/i, candidates: ["bookshelf,books", "bookshelf"] },
+  { match: /notlarım/i, candidates: ["notebook,book", "notebook"] },
+  { match: /park/i, candidates: ["park,reading", "park,book"] },
+  { match: /battaniye|yağmurlu/i, candidates: ["cozy,book,blanket", "cozy,book"] },
+  { match: /yeni kitap|yeni gelen/i, candidates: ["newbooks", "books,stack"] },
+  { match: /metroda|tren/i, candidates: ["train,book", "train,reading"] },
 ];
 
-function keywordsForPost(body: string | null, bookGenre: string | null): string {
+function keywordCandidatesForPost(body: string | null, bookGenre: string | null): string[] {
   const text = body ?? "";
   for (const rule of POST_KEYWORD_RULES) {
-    if (rule.match.test(text)) return rule.keywords;
+    if (rule.match.test(text)) return [...rule.candidates, "books"];
   }
-  if (bookGenre?.toLowerCase().includes("bilimkurgu")) return "sciencefiction,books";
-  if (bookGenre?.toLowerCase().includes("şiir") || bookGenre?.toLowerCase().includes("siir")) return "poetry,book";
-  return "books,reading";
+  if (bookGenre?.toLowerCase().includes("bilimkurgu")) return ["sciencefiction,books", "sciencefiction", "books"];
+  if (bookGenre?.toLowerCase().includes("şiir") || bookGenre?.toLowerCase().includes("siir")) return ["poetry,coffee", "poetry", "books"];
+  return ["books,reading", "books"];
 }
 
 // 2 kulüp ve 2 etkinlik için örnek kapak fotoğrafı - "bir iki tanesinde
 // kapak fotoğrafı olsun" isteği için, hepsine değil. Her biri kendi temasına
-// uygun bir anahtar kelimeyle.
-const CLUB_COVERS: { slug: string; keywords: string }[] = [
-  { slug: "felsefe-kulubu", keywords: "philosophy,oldbooks" },
-  { slug: "bilimkurgu-kulubu", keywords: "sciencefiction,space" },
+// uygun anahtar kelime adaylarıyla.
+const CLUB_COVERS: { slug: string; candidates: string[] }[] = [
+  { slug: "felsefe-kulubu", candidates: ["philosophy,books", "philosophy", "oldbooks"] },
+  { slug: "bilimkurgu-kulubu", candidates: ["sciencefiction,space", "sciencefiction", "space"] },
 ];
-const EVENT_COVERS: { slugPrefix: string; keywords: string }[] = [
-  { slugPrefix: "kitapmeetup-buyuk-piknik", keywords: "picnic,park,books" },
-  { slugPrefix: "siir-kulubu-acik-mikrofon", keywords: "poetry,microphone,coffeehouse" },
+const EVENT_COVERS: { slugPrefix: string; candidates: string[] }[] = [
+  { slugPrefix: "kitapmeetup-buyuk-piknik", candidates: ["picnic,park", "picnic,books", "picnic"] },
+  { slugPrefix: "siir-kulubu-acik-mikrofon", candidates: ["poetry,microphone", "poetry,coffee", "poetry"] },
 ];
 
 async function main() {
@@ -97,7 +126,7 @@ async function main() {
   }
   console.log(`  ${avatarCount}/${targets.length} profile avatar eklendi (toplam ${profiles?.length ?? 0} avatarsız profil vardı).`);
 
-  console.log("→ Kitap fotoğrafı gönderileri (tüm 'photo' türü gönderiler, konuyla ilgili görsellerle)");
+  console.log("→ Kitap fotoğrafı gönderileri (tüm 'photo' türü gönderiler, konuyla ilgili + doğrulanmış görsellerle)");
   const { data: photoPosts } = await supabase.from("posts").select("id, body, book_id").eq("type", "photo");
   const bookIds = Array.from(new Set((photoPosts ?? []).map((p) => p.book_id).filter((id): id is string => Boolean(id))));
   const { data: books } = bookIds.length ? await supabase.from("books").select("id, genre").in("id", bookIds) : { data: [] };
@@ -105,38 +134,42 @@ async function main() {
   let postImageCount = 0;
   for (const p of photoPosts ?? []) {
     const genre = p.book_id ? (genreByBookId.get(p.book_id) ?? null) : null;
-    const keywords = keywordsForPost(p.body, genre);
-    const { error } = await supabase.from("posts").update({ image_url: loremflickrUrl(keywords, p.id) }).eq("id", p.id);
+    const candidates = keywordCandidatesForPost(p.body, genre);
+    const imageUrl = await pickWorkingImageUrl(candidates, p.id);
+    const { error } = await supabase.from("posts").update({ image_url: imageUrl }).eq("id", p.id);
     if (!error) postImageCount++;
   }
-  console.log(`  ${postImageCount}/${photoPosts?.length ?? 0} gönderiye konuyla ilgili fotoğraf eklendi.`);
+  console.log(`  ${postImageCount}/${photoPosts?.length ?? 0} gönderiye konuyla ilgili, doğrulanmış fotoğraf eklendi.`);
 
   console.log("→ Günün Sorusu cevapları (image_url'i olmayan birkaçına)");
   const { data: promptAnswers } = await supabase.from("daily_prompt_answers").select("id").is("image_url", null).limit(5);
   let answerImageCount = 0;
   for (const a of promptAnswers ?? []) {
     if (Math.random() < 0.5) continue;
-    const { error } = await supabase.from("daily_prompt_answers").update({ image_url: loremflickrUrl("books,reading", a.id, 700, 500) }).eq("id", a.id);
+    const imageUrl = await pickWorkingImageUrl(["books,reading", "books"], a.id, 700, 500);
+    const { error } = await supabase.from("daily_prompt_answers").update({ image_url: imageUrl }).eq("id", a.id);
     if (!error) answerImageCount++;
   }
   console.log(`  ${answerImageCount} cevaba fotoğraf eklendi.`);
 
-  console.log("→ Kulüp kapak fotoğrafları (örnek — birkaç tanesine, temaya uygun)");
+  console.log("→ Kulüp kapak fotoğrafları (örnek — birkaç tanesine, temaya uygun + doğrulanmış)");
   let clubCoverCount = 0;
   for (const c of CLUB_COVERS) {
-    const { error } = await supabase.from("clubs").update({ cover_url: loremflickrUrl(c.keywords, `club-${c.slug}`, 1200, 500) }).eq("slug", c.slug);
+    const imageUrl = await pickWorkingImageUrl(c.candidates, `club-${c.slug}`, 1200, 500);
+    const { error } = await supabase.from("clubs").update({ cover_url: imageUrl }).eq("slug", c.slug);
     if (!error) clubCoverCount++;
     else console.warn(`  ⚠️  ${c.slug}: ${error.message}`);
   }
   console.log(`  ${clubCoverCount}/${CLUB_COVERS.length} kulübe kapak eklendi.`);
 
-  console.log("→ Etkinlik kapak fotoğrafları (örnek — birkaç tanesine, temaya uygun)");
+  console.log("→ Etkinlik kapak fotoğrafları (örnek — birkaç tanesine, temaya uygun + doğrulanmış)");
   const { data: events } = await supabase.from("events").select("id, slug");
   let eventCoverCount = 0;
   for (const ec of EVENT_COVERS) {
     const match = (events ?? []).find((e) => e.slug.startsWith(ec.slugPrefix));
     if (!match) continue;
-    const { error } = await supabase.from("events").update({ cover_url: loremflickrUrl(ec.keywords, `event-${match.slug}`, 1200, 500) }).eq("id", match.id);
+    const imageUrl = await pickWorkingImageUrl(ec.candidates, `event-${match.slug}`, 1200, 500);
+    const { error } = await supabase.from("events").update({ cover_url: imageUrl }).eq("id", match.id);
     if (!error) eventCoverCount++;
     else console.warn(`  ⚠️  ${match.slug}: ${error.message}`);
   }
