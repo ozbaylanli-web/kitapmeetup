@@ -6,18 +6,21 @@ import { DemoBanner } from "./DemoBanner";
 import { PageTransition } from "./PageTransition";
 import { getCurrentUser } from "@/lib/data/auth";
 import { getConversations } from "@/lib/data/messages";
+import { getNotificationItems } from "@/lib/data/notifications";
 import { hasSupabaseEnv } from "@/lib/env";
 
 export async function AppShell({ children }: { children: ReactNode }) {
   const currentUser = await getCurrentUser();
-  const conversations = currentUser ? await getConversations() : [];
+  const [conversations, notifications] = currentUser
+    ? await Promise.all([getConversations(), getNotificationItems()])
+    : [[], []];
   const hasUnreadMessages = conversations.some((c) => c.unread);
 
   return (
     <div className="flex min-h-screen">
-      <Sidebar currentUser={currentUser} hasUnreadMessages={hasUnreadMessages} />
+      <Sidebar currentUser={currentUser} hasUnreadMessages={hasUnreadMessages} notifications={notifications} />
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <Topbar currentUser={currentUser} />
+        <Topbar currentUser={currentUser} notifications={notifications} />
         <main className="mx-auto w-full min-w-0 max-w-3xl flex-1 px-4 pb-24 pt-6 lg:pb-10">
           {!hasSupabaseEnv() && <DemoBanner />}
           <PageTransition>{children}</PageTransition>

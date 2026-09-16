@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/types";
 import { requireUser, isCtx } from "./helpers";
+import { checkUploadSize } from "@/lib/uploads";
 import type { ActionResult, PostType, CommentTarget } from "@/lib/types";
 
 async function findOrCreateBook(
@@ -72,6 +73,8 @@ export async function createPostAction(_prev: ActionResult, formData: FormData):
 
   let imageUrl: string | null = null;
   if (image instanceof File && image.size > 0) {
+    const sizeError = checkUploadSize(image);
+    if (sizeError) return { ok: false, error: sizeError };
     const path = `${userId}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const { error: uploadError } = await supabase.storage.from("post-images").upload(path, image);
     if (uploadError) return { ok: false, error: uploadError.message };

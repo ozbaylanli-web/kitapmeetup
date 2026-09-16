@@ -31,6 +31,8 @@ export interface ClubSummary {
   color: string;
   description: string;
   memberCount: number;
+  /** İsteğe bağlı kapak fotoğrafı (Supabase Storage public URL) — yoksa varsayılan gradient kullanılır. */
+  coverUrl?: string | null;
 }
 
 export interface ClubDetail extends ClubSummary {
@@ -176,6 +178,8 @@ export interface EventSummary {
   myRsvp?: RsvpStatus | null;
   /** Etkinlik rehberdeki bir mekana bağlıysa (opsiyonel — serbest metin konum da hâlâ geçerli). */
   venue?: VenueSummary | null;
+  /** İsteğe bağlı kapak fotoğrafı (Supabase Storage public URL) — yoksa varsayılan gradient kullanılır. */
+  coverUrl?: string | null;
 }
 
 // ─────────────────────────────────────────────────────────────────────────

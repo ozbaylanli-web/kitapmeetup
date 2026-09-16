@@ -9,7 +9,9 @@ import { ClubReadingSection } from "@/components/clubs/ClubReadingSection";
 import { ClubVenueSection } from "@/components/clubs/ClubVenueSection";
 import { PostCard } from "@/components/feed/PostCard";
 import { PublisherBadge } from "@/components/ui/PublisherBadge";
+import { CoverUploader } from "@/components/ui/CoverUploader";
 import { getClubBySlug, isClubMember, getMyClubRole } from "@/lib/data/clubs";
+import { setClubCoverAction } from "@/lib/actions/clubs";
 import { getFeedPosts } from "@/lib/data/feed";
 import { getEvents } from "@/lib/data/events";
 import { getVenues } from "@/lib/data/venues";
@@ -34,42 +36,58 @@ export default async function ClubDetailPage({ params }: { params: Promise<{ slu
 
   return (
     <div>
-      <div className="paper-card mb-6 p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span
-              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-2xl"
-              style={{ backgroundColor: `color-mix(in srgb, ${club.color} 18%, transparent)` }}
-            >
-              {club.icon}
-            </span>
-            <div>
-              <h1 className="font-serif text-2xl font-semibold text-[var(--ink)]">{club.name}</h1>
-              <p className="flex flex-wrap items-center gap-1 text-xs text-[var(--ink-muted)]">
-                <Users size={12} /> {club.memberCount} üye · kurucu {club.createdBy.fullName}
-                {club.createdBy.accountKind === "publisher" && <PublisherBadge />}
-              </p>
-            </div>
-          </div>
-          {currentUser && <JoinClubButton clubId={club.id} initialMember={memberStatus} />}
-        </div>
-        <p className="mt-4 text-sm leading-relaxed text-[var(--ink-soft)]">{club.description}</p>
-
-        {club.members.length > 0 && (
-          <div className="mt-4 flex -space-x-2">
-            {club.members.slice(0, 8).map((m) => (
-              <Link key={m.id} href={`/profil/${m.username}`}>
-                <Avatar
-                  name={m.fullName}
-                  color={m.avatarColor}
-                  url={m.avatarUrl}
-                  size={30}
-                  className="ring-2 ring-[var(--paper-elevated)]"
-                />
-              </Link>
-            ))}
+      <div className="paper-card mb-6 overflow-hidden">
+        {(club.coverUrl || canManageReading) && (
+          <div
+            className="relative flex h-28 items-start justify-end p-3 sm:h-36"
+            style={
+              club.coverUrl
+                ? { backgroundImage: `url(${club.coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" }
+                : { background: `linear-gradient(135deg, color-mix(in srgb, ${club.color} 30%, transparent), transparent)` }
+            }
+          >
+            {canManageReading && (
+              <CoverUploader action={setClubCoverAction} idFieldName="clubId" idValue={club.id} hasCover={Boolean(club.coverUrl)} />
+            )}
           </div>
         )}
+        <div className="p-5 sm:p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <span
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-2xl"
+                style={{ backgroundColor: `color-mix(in srgb, ${club.color} 18%, transparent)` }}
+              >
+                {club.icon}
+              </span>
+              <div>
+                <h1 className="font-serif text-2xl font-semibold text-[var(--ink)]">{club.name}</h1>
+                <p className="flex flex-wrap items-center gap-1 text-xs text-[var(--ink-muted)]">
+                  <Users size={12} /> {club.memberCount} üye · kurucu {club.createdBy.fullName}
+                  {club.createdBy.accountKind === "publisher" && <PublisherBadge />}
+                </p>
+              </div>
+            </div>
+            {currentUser && <JoinClubButton clubId={club.id} initialMember={memberStatus} />}
+          </div>
+          <p className="mt-4 text-sm leading-relaxed text-[var(--ink-soft)]">{club.description}</p>
+
+          {club.members.length > 0 && (
+            <div className="mt-4 flex -space-x-2">
+              {club.members.slice(0, 8).map((m) => (
+                <Link key={m.id} href={`/profil/${m.username}`}>
+                  <Avatar
+                    name={m.fullName}
+                    color={m.avatarColor}
+                    url={m.avatarUrl}
+                    size={30}
+                    className="ring-2 ring-[var(--paper-elevated)]"
+                  />
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">

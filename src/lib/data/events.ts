@@ -68,6 +68,7 @@ export async function getEvents(): Promise<EventSummary[]> {
     createdBy: (e.created_by && authorMap.get(e.created_by)) || DEMO_USER,
     myRsvp: myRsvpMap.get(e.id) ?? null,
     venue: e.venue_id ? venueMap.get(e.venue_id) ?? null : null,
+    coverUrl: e.cover_url,
   }));
 }
 

@@ -7,13 +7,16 @@ import { RegistrationFieldsEditor } from "@/components/events/RegistrationFields
 import { RegistrantsDashboard } from "@/components/events/RegistrantsDashboard";
 import { InstagramPublishButton } from "@/components/events/InstagramPublishButton";
 import { EventGoingNudge } from "@/components/matches/EventGoingNudge";
+import { CoverUploader } from "@/components/ui/CoverUploader";
+import { ShareButton } from "@/components/ui/ShareButton";
 import { VENUE_KIND_META } from "@/lib/venueKinds";
 import { getEventBySlug } from "@/lib/data/events";
 import { getCurrentUser } from "@/lib/data/auth";
 import { getMatchedAttendeesForEvent } from "@/lib/data/matches";
 import { canManageEvent, getRegistrationFields, getMyRegistrationAnswers, getEventRegistrants } from "@/lib/data/registrations";
 import { getInstagramPostRecord } from "@/lib/data/instagram";
-import { formatEventDate } from "@/lib/utils";
+import { setEventCoverAction } from "@/lib/actions/events";
+import { formatEventDate, cn } from "@/lib/utils";
 
 export default async function EventDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -32,8 +35,12 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
   return (
     <div>
       <div className="paper-card overflow-hidden">
-        <div className="sunset-gradient flex h-32 items-end p-5 text-white sm:h-40">
-          <div>
+        <div
+          className={cn("relative flex h-32 items-end justify-between gap-3 p-5 text-white sm:h-40", !event.coverUrl && "sunset-gradient")}
+          style={event.coverUrl ? { backgroundImage: `url(${event.coverUrl})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+        >
+          {event.coverUrl && <div className="absolute inset-0 bg-black/25" />}
+          <div className="relative min-w-0">
             {event.club && (
               <span className="tag-pill mb-2 bg-white/20 text-white">
                 {event.club.icon} {event.club.name}
@@ -41,6 +48,11 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             )}
             <h1 className="font-serif text-2xl font-semibold sm:text-3xl">{event.title}</h1>
           </div>
+          {canManage && (
+            <div className="relative shrink-0">
+              <CoverUploader action={setEventCoverAction} idFieldName="eventId" idValue={event.id} hasCover={Boolean(event.coverUrl)} />
+            </div>
+          )}
         </div>
 
         <div className="space-y-4 p-5 sm:p-6">
@@ -88,6 +100,13 @@ export default async function EventDetailPage({ params }: { params: Promise<{ sl
             >
               <CalendarPlus size={15} /> Takvime ekle
             </a>
+            <ShareButton
+              title={event.title}
+              text={`${formatEventDate(event.startsAt)} · ${event.isOnline ? "Online" : (event.locationName ?? "Kitapmeetup")}`}
+              url={`/etkinlikler/${event.slug}`}
+              imageCardUrl={`/api/instagram/kart?eyebrow=${encodeURIComponent(event.club ? `${event.club.icon} ${event.club.name}` : "Etkinlik")}&title=${encodeURIComponent(event.title)}&subtitle=${encodeURIComponent(formatEventDate(event.startsAt))}`}
+              label="Paylaş"
+            />
           </div>
 
           <div className="flex items-center gap-2 border-t border-[var(--line)] pt-4 text-sm text-[var(--ink-muted)]">

@@ -1,10 +1,12 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { Camera } from "lucide-react";
 import { updateProfileAction } from "@/lib/actions/profile";
 import { Button } from "@/components/ui/Button";
 import { DemoNote } from "@/components/ui/DemoNote";
 import { Avatar } from "@/components/ui/Avatar";
+import { checkUploadSize } from "@/lib/uploads";
 import type { AuthorSummary } from "@/lib/types";
 
 const COLOR_OPTIONS = ["#F0611F", "#6F5A94", "#146B62", "#C05F82", "#35594D", "#B8791B", "#3E6C93", "#D24915"];
@@ -12,16 +14,42 @@ const initialState = { ok: true as const };
 
 export function SettingsForm({ currentUser }: { currentUser: AuthorSummary }) {
   const [state, formAction, pending] = useActionState(updateProfileAction, initialState);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  function onAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const err = checkUploadSize(file);
+    if (err) {
+      setAvatarError(err);
+      e.target.value = "";
+      return;
+    }
+    setAvatarError(null);
+    setAvatarPreview(URL.createObjectURL(file));
+  }
 
   return (
     <form action={formAction} className="paper-card space-y-4 p-5">
       <div className="flex items-center gap-3">
-        <Avatar name={currentUser.fullName} color={currentUser.avatarColor} url={currentUser.avatarUrl} size={48} />
-        <div>
+        {avatarPreview ? (
+          // eslint-disable-next-line @next/next/no-img-element -- anlik yerel onizleme (object URL), yukleme sonrasi Avatar bilesenine gecilir
+          <img src={avatarPreview} alt={currentUser.fullName} width={48} height={48} className="h-12 w-12 shrink-0 rounded-full object-cover" />
+        ) : (
+          <Avatar name={currentUser.fullName} color={currentUser.avatarColor} url={currentUser.avatarUrl} size={48} />
+        )}
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-[var(--ink)]">@{currentUser.username}</p>
           <p className="text-xs text-[var(--ink-muted)]">Kullanıcı adı değiştirilemez.</p>
         </div>
+        <label className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-[var(--line)] px-3 py-1.5 text-xs font-semibold text-[var(--ink-soft)] hover:bg-[var(--paper-sunken)]">
+          <Camera size={13} />
+          Fotoğraf {currentUser.avatarUrl ? "değiştir" : "ekle"}
+          <input type="file" name="avatar" accept="image/*" className="hidden" onChange={onAvatarChange} />
+        </label>
       </div>
+      {avatarError && <p className="text-xs text-[var(--danger)]">{avatarError}</p>}
 
       <div>
         <label className="mb-1 block text-xs font-semibold text-[var(--ink-soft)]">Ad Soyad</label>

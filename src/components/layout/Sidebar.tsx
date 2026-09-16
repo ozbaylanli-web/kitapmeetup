@@ -2,20 +2,33 @@ import Link from "next/link";
 import { LogOut, Settings } from "lucide-react";
 import { Logo } from "./Logo";
 import { NavLinks } from "./NavLinks";
+import { NotificationBell } from "./NotificationBell";
 import { Avatar } from "@/components/ui/Avatar";
 import type { AuthorSummary } from "@/lib/types";
+import type { NotificationItem } from "@/lib/data/notifications";
 import { hasSupabaseEnv } from "@/lib/env";
 import { signOutAction } from "@/lib/actions/auth";
 import { getDailyDiscovery } from "@/lib/data/discovery";
 
-export async function Sidebar({ currentUser, hasUnreadMessages = false }: { currentUser: AuthorSummary | null; hasUnreadMessages?: boolean }) {
+export async function Sidebar({
+  currentUser,
+  hasUnreadMessages = false,
+  notifications = [],
+}: {
+  currentUser: AuthorSummary | null;
+  hasUnreadMessages?: boolean;
+  notifications?: NotificationItem[];
+}) {
   const discovery = await getDailyDiscovery();
   const DiscoveryIcon = discovery.icon;
 
   return (
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col justify-between border-r border-[var(--line)] bg-[var(--paper-elevated)] px-4 py-6 lg:flex">
       <div className="flex flex-col gap-8">
-        <Logo />
+        <div className="flex items-center justify-between">
+          <Logo />
+          {currentUser && <NotificationBell items={notifications} />}
+        </div>
         <NavLinks hasUnreadMessages={hasUnreadMessages} />
 
         <Link

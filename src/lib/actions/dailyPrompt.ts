@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser, isCtx } from "./helpers";
+import { checkUploadSize } from "@/lib/uploads";
 import type { ActionResult } from "@/lib/types";
 
 export async function submitPromptAnswerAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
@@ -18,6 +19,8 @@ export async function submitPromptAnswerAction(_prev: ActionResult, formData: Fo
 
   let imageUrl: string | null = null;
   if (image instanceof File && image.size > 0) {
+    const sizeError = checkUploadSize(image);
+    if (sizeError) return { ok: false, error: sizeError };
     const path = `daily-answers/${userId}/${Date.now()}-${image.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
     const { error: uploadError } = await supabase.storage.from("post-images").upload(path, image);
     if (uploadError) return { ok: false, error: uploadError.message };

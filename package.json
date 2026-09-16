@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "db:seed": "tsx --env-file=.env.local scripts/seed.ts"
+    "db:seed": "tsx --env-file=.env.local scripts/seed.ts",
+    "db:seed:images": "tsx --env-file=.env.local scripts/addDemoImages.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

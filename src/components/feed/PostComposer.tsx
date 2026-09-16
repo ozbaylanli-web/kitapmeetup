@@ -6,6 +6,7 @@ import { createPostAction } from "@/lib/actions/posts";
 import { Avatar } from "@/components/ui/Avatar";
 import { Button } from "@/components/ui/Button";
 import { DemoNote } from "@/components/ui/DemoNote";
+import { checkUploadSize } from "@/lib/uploads";
 import type { AuthorSummary, ClubSummary, PostType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -24,11 +25,20 @@ const initialState = { ok: true as const };
 export function PostComposer({ currentUser, clubs }: { currentUser: AuthorSummary; clubs: ClubSummary[] }) {
   const [type, setType] = useState<PostType>("text");
   const [state, formAction, pending] = useActionState(createPostAction, initialState);
+  const [fileError, setFileError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const wasPending = useRef(false);
   const activeType = TYPES.find((t) => t.value === type)!;
   const isSwap = type === "takas" || type === "takas_arama";
   const isSeeking = type === "takas_arama";
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return setFileError(null);
+    const err = checkUploadSize(file);
+    setFileError(err);
+    if (err) e.target.value = "";
+  }
 
   useEffect(() => {
     if (wasPending.current && !pending && state.ok) {
@@ -140,12 +150,16 @@ export function PostComposer({ currentUser, clubs }: { currentUser: AuthorSummar
           )}
 
           {type === "photo" && (
-            <input
-              type="file"
-              name="image"
-              accept="image/*"
-              className="w-full rounded-xl border border-dashed border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2 text-xs text-[var(--ink-muted)] file:mr-3 file:rounded-full file:border-0 file:bg-[var(--orange-100)] file:px-3 file:py-1 file:text-xs file:font-semibold file:text-[var(--orange-700)]"
-            />
+            <div>
+              <input
+                type="file"
+                name="image"
+                accept="image/*"
+                onChange={onFileChange}
+                className="w-full rounded-xl border border-dashed border-[var(--line-strong)] bg-[var(--paper)] px-3 py-2 text-xs text-[var(--ink-muted)] file:mr-3 file:rounded-full file:border-0 file:bg-[var(--orange-100)] file:px-3 file:py-1 file:text-xs file:font-semibold file:text-[var(--orange-700)]"
+              />
+              {fileError && <p className="mt-1 text-xs text-[var(--danger)]">{fileError}</p>}
+            </div>
           )}
 
           {clubs.length > 0 && (

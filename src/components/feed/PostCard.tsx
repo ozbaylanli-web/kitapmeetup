@@ -3,6 +3,7 @@ import { Quote, HelpCircle, ImageIcon, MessageCircle, BookOpen, Repeat, Search, 
 import { Avatar } from "@/components/ui/Avatar";
 import { Pill } from "@/components/ui/Pill";
 import { PublisherBadge } from "@/components/ui/PublisherBadge";
+import { ShareButton } from "@/components/ui/ShareButton";
 import { LikeButton } from "./LikeButton";
 import { CommentsSection } from "./CommentsSection";
 import { PostInstagramButton } from "./PostInstagramButton";
@@ -20,8 +21,10 @@ const TYPE_META: Record<FeedPost["type"], { icon: typeof Quote; label: string }>
   kulup: { icon: Users, label: "Yeni Kulüp" },
 };
 
-/** Instagram'a paylaşmaya değer, "gerçek" içerik sayılan türler (sistem duyuruları/takas ilanları hariç). */
+/** Resmi hesapta (yönetici) paylaşmaya değer, "gerçek" içerik sayılan türler (sistem duyuruları/takas ilanları hariç). */
 const INSTAGRAM_ELIGIBLE_TYPES: FeedPost["type"][] = ["text", "quote", "photo", "question"];
+/** Herkesin kendi hesabına paylaşabileceği türler — sistem duyuruları (etkinlik/kulüp) hariç hepsi. */
+const SHARE_ELIGIBLE_TYPES: FeedPost["type"][] = ["text", "quote", "photo", "question", "takas", "takas_arama"];
 
 export function PostCard({ post, isAdmin = false }: { post: FeedPost; isAdmin?: boolean }) {
   const meta = TYPE_META[post.type];
@@ -139,6 +142,19 @@ export function PostCard({ post, isAdmin = false }: { post: FeedPost; isAdmin?: 
           <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-[var(--line)] pt-2.5">
             <LikeButton postId={post.id} initialLiked={post.likedByMe} initialCount={post.likeCount} />
             <CommentsSection postId={post.id} initialCount={post.commentCount} />
+            {SHARE_ELIGIBLE_TYPES.includes(post.type) &&
+              (() => {
+                const cardTitle = post.body?.trim() || post.book?.title || meta.label;
+                const cardSubtitle = post.club ? `${post.club.icon} ${post.club.name}` : meta.label;
+                return (
+                  <ShareButton
+                    title={cardTitle}
+                    text={`${post.author.fullName} — Kitapmeetup`}
+                    url={isSwap ? `/takas/${post.id}` : undefined}
+                    imageCardUrl={`/api/instagram/kart?eyebrow=${encodeURIComponent(post.author.fullName)}&title=${encodeURIComponent(cardTitle)}&subtitle=${encodeURIComponent(cardSubtitle)}`}
+                  />
+                );
+              })()}
             {isAdmin && INSTAGRAM_ELIGIBLE_TYPES.includes(post.type) && <PostInstagramButton postId={post.id} />}
           </div>
 

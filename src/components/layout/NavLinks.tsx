@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { NAV_ITEMS } from "@/lib/nav";
+import { NAV_ITEMS, NAV_ORDER_DESKTOP } from "@/lib/nav";
 import { ambientEngine } from "@/lib/audio/ambientEngine";
 
 export function NavLinks({
@@ -15,10 +15,13 @@ export function NavLinks({
   hasUnreadMessages?: boolean;
 }) {
   const pathname = usePathname();
+  // Masaüstü kenar çubuğu (vertical) farklı bir sırada gösterilir - bkz. src/lib/nav.ts.
+  const items =
+    orientation === "vertical" ? NAV_ORDER_DESKTOP.map((href) => NAV_ITEMS.find((item) => item.href === href)!) : NAV_ITEMS;
 
   return (
     <nav className={cn(orientation === "vertical" ? "flex flex-col gap-1" : "flex items-stretch")}>
-      {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+      {items.map(({ href, label, icon: Icon }) => {
         const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
         const showUnreadDot = href === "/mesajlar" && hasUnreadMessages;
         return (

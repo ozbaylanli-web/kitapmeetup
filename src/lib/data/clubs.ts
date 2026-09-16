@@ -29,6 +29,7 @@ export async function getClubs(): Promise<ClubSummary[]> {
     color: c.color,
     description: c.description,
     memberCount: counts.get(c.id) ?? 0,
+    coverUrl: c.cover_url,
   }));
 }
 
@@ -112,6 +113,7 @@ export async function getClubBySlug(slug: string): Promise<ClubDetail | null> {
     pinnedBookSetAt: club.current_book_set_at,
     readThreads,
     homeVenue,
+    coverUrl: club.cover_url,
   };
 }
 

@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { requireUser, isCtx } from "./helpers";
+import { checkUploadSize } from "@/lib/uploads";
+import { getMyClubRole } from "@/lib/data/clubs";
 import type { ActionResult, RsvpStatus } from "@/lib/types";
 import { slugify } from "@/lib/utils";
 
@@ -86,5 +88,41 @@ export async function createEventAction(_prev: ActionResult, formData: FormData)
 
   revalidatePath("/etkinlikler");
   revalidatePath("/");
+  return { ok: true };
+}
+
+/** Etkinliğin kapak fotoğrafını ayarlar/değiştirir — sadece oluşturan kişi ya da bağlı kulübün yöneticisi/moderatörü. */
+export async function setEventCoverAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+  const ctx = await requireUser();
+  if (!isCtx(ctx)) return ctx;
+  const { supabase, userId } = ctx;
+
+  const eventId = String(formData.get("eventId") ?? "");
+  const cover = formData.get("cover");
+  if (!eventId) return { ok: false, error: "Geçersiz etkinlik." };
+  if (!(cover instanceof File) || cover.size === 0) return { ok: false, error: "Bir fotoğraf seç." };
+
+  const { data: event } = await supabase.from("events").select("created_by, club_id").eq("id", eventId).maybeSingle();
+  if (!event) return { ok: false, error: "Etkinlik bulunamadı." };
+  let canManage = event.created_by === userId;
+  if (!canManage && event.club_id) {
+    const role = await getMyClubRole(event.club_id);
+    canManage = role === "owner" || role === "moderator";
+  }
+  if (!canManage) return { ok: false, error: "Bu etkinliği yönetme yetkin yok." };
+
+  const sizeError = checkUploadSize(cover);
+  if (sizeError) return { ok: false, error: sizeError };
+
+  const path = `${userId}/event-${eventId}-${Date.now()}-${cover.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+  const { error: uploadError } = await supabase.storage.from("covers").upload(path, cover);
+  if (uploadError) return { ok: false, error: uploadError.message };
+  const { data: publicUrlData } = supabase.storage.from("covers").getPublicUrl(path);
+
+  const { error } = await supabase.from("events").update({ cover_url: publicUrlData.publicUrl }).eq("id", eventId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath("/etkinlikler/[slug]", "page");
+  revalidatePath("/etkinlikler");
   return { ok: true };
 }

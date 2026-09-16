@@ -15,3 +15,8 @@ export const NAV_ITEMS = [
   { href: "/kulupler", label: "Kulüpler", icon: Users },
   { href: "/etkinlikler", label: "Etkinlikler", icon: CalendarDays },
 ] as const;
+
+// Masaüstü (website) görünümünde istenen sıralama mobil (app) görünümünden
+// farklı: Ana Sayfa, Kulüpler, Etkinlikler, Eşleşmeler, Mesajlar. Mobil
+// alt navigasyon NAV_ITEMS'in kendi sırasını kullanmaya devam eder.
+export const NAV_ORDER_DESKTOP = ["/", "/kulupler", "/etkinlikler", "/eslesmeler", "/mesajlar"] as const;

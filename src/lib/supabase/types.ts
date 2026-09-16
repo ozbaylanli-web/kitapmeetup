@@ -77,6 +77,7 @@ export interface Database {
           current_book_note: string | null;
           current_book_set_at: string | null;
           home_venue_id: string | null;
+          cover_url: string | null;
           created_at: string;
         },
         {
@@ -91,6 +92,7 @@ export interface Database {
           current_book_note?: string | null;
           current_book_set_at?: string | null;
           home_venue_id?: string | null;
+          cover_url?: string | null;
           created_at?: string;
         }
       >;
@@ -209,6 +211,7 @@ export interface Database {
           ends_at: string | null;
           capacity: number | null;
           created_by: string | null;
+          cover_url: string | null;
           created_at: string;
         },
         {
@@ -225,6 +228,7 @@ export interface Database {
           ends_at?: string | null;
           capacity?: number | null;
           created_by?: string | null;
+          cover_url?: string | null;
           created_at?: string;
         }
       >;
