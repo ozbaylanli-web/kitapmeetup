@@ -19,12 +19,27 @@ function rawHttpsGet(host: string, path: string): Promise<number> {
   });
 }
 
+function scanForBadChars(s: string) {
+  let bad = 0;
+  for (let i = 0; i < s.length; i++) {
+    if (!/[A-Za-z0-9_.\-]/.test(s[i])) bad++;
+  }
+  return bad;
+}
+
 export async function GET() {
   const marks: Record<string, number | string> = {};
+  const testVal = process.env.TEST_ANON_KEY ?? "";
   const diag = {
     runtime: process.env.NEXT_RUNTIME,
     dnsOrder: getDefaultResultOrder(),
     nodeVersion: process.version,
+    // Ayni deger, tamamen farkli/yeni bir degisken adiyla saklanirsa da
+    // maskeleniyor mu? Maskeleme DEGERE mi yoksa DEGISKEN GECMISINE mi bagli,
+    // bunu ayirt eder.
+    testAnonKeyLength: testVal.length,
+    testAnonKeyBadChars: scanForBadChars(testVal),
+    testAnonKeyStart: testVal.slice(0, 12),
   };
 
   // 1) Supabase'le tamamen ilgisiz, rastgele bir dis host - genel disa cikis
