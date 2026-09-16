@@ -58,12 +58,25 @@ export async function GET() {
   marks.createClient = Date.now() - t0;
 
   let queryResult: unknown = null;
+  let authResult: unknown = null;
   if (supabase) {
     const t1 = Date.now();
     const { data, error, status, statusText } = await supabase.from("clubs").select("*");
     marks.clubsQuery = Date.now() - t1;
     queryResult = { data, error, status, statusText };
+
+    // Ayni istemci/anahtar ile GoTrue (auth) cagrisi da aynen bozuluyor mu -
+    // yoksa sadece PostgREST (.from()) yolunda mi kiriliyor, ayirt eder.
+    const t2 = Date.now();
+    try {
+      const { data: authData, error: authError } = await supabase.auth.getSession();
+      marks.authCall = Date.now() - t2;
+      authResult = { hasSession: Boolean(authData?.session), error: authError?.message ?? null };
+    } catch (e) {
+      marks.authCall = Date.now() - t2;
+      authResult = { error: `threw: ${e instanceof Error ? e.message : String(e)}` };
+    }
   }
 
-  return NextResponse.json({ marks, diag, queryResult });
+  return NextResponse.json({ marks, diag, queryResult, authResult });
 }
