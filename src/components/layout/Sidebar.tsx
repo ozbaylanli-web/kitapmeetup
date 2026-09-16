@@ -3,6 +3,7 @@ import { LogOut, Settings } from "lucide-react";
 import { Logo } from "./Logo";
 import { NavLinks } from "./NavLinks";
 import { NotificationBell } from "./NotificationBell";
+import { ThemeToggle } from "./ThemeToggle";
 import { Avatar } from "@/components/ui/Avatar";
 import type { AuthorSummary } from "@/lib/types";
 import type { NotificationItem } from "@/lib/data/notifications";
@@ -27,7 +28,10 @@ export async function Sidebar({
       <div className="flex flex-col gap-8">
         <div className="flex items-center justify-between">
           <Logo />
-          {currentUser && <NotificationBell items={notifications} />}
+          <div className="flex items-center gap-0.5">
+            <ThemeToggle />
+            {currentUser && <NotificationBell items={notifications} />}
+          </div>
         </div>
         <NavLinks hasUnreadMessages={hasUnreadMessages} />
 

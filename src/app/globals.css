@@ -2,8 +2,11 @@
 
 /*
   Kitapmeetup tasarım dili: gün batımı turuncusu + sıcak "kitap sayfası" kremi.
-  Bilinçli olarak tek (açık) temalı: içerik-yoğun, edebi bir uygulama için
-  sıcak kağıt hissi korunuyor — sistem karanlık modunu takip etmiyor.
+  Karanlık modda da aynı "sıcak kağıt/kitap" hissi korunur — nötr gri/siyah
+  yerine koyu espresso/sepya tonları, turuncu marka rengi aynen kalır.
+  Üç durum: sistem tercihi (varsayılan, prefers-color-scheme), ya da
+  kullanıcının açıkça seçtiği tema (<html data-theme="light|dark">, bkz.
+  ThemeToggle) — açık seçim her zaman sistem tercihini geçersiz kılar.
 */
 
 :root {
@@ -60,6 +63,94 @@
   --shadow-glow: 0 0 0 1px rgba(240, 97, 31, 0.12), 0 10px 30px -10px rgba(240, 97, 31, 0.35);
 }
 
+/* Karanlık mod — sistem tercihi, kullanıcı açıkça "light" seçmediği sürece. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --paper: #1b1611;
+    --paper-elevated: #262019;
+    --paper-sunken: #14100c;
+    --ink: #f3e8d6;
+    --ink-soft: #d9c6a3;
+    --ink-muted: #9c8a74;
+    --line: #382d22;
+    --line-strong: #4a3c2c;
+
+    --orange-50: #3a2314;
+    --orange-100: #4a2c16;
+    --orange-200: #6b3d1a;
+    --orange-300: #c96a30;
+    --orange-400: #ee8748;
+    --orange-500: #fb7f3a;
+    --orange-600: #ff9c5c;
+    --orange-700: #ffb27d;
+    --orange-800: #ffc79a;
+    --orange-900: #ffe4cc;
+
+    --club-felsefe: #b09fd6;
+    --club-bilimkurgu: #4fc9ba;
+    --club-siir: #e69ab5;
+    --club-distopya: #7fae99;
+
+    --success: #6fbb85;
+    --info: #7fb3dd;
+    --warning: #e0a752;
+    --danger: #e2726a;
+
+    --gold-300: #7a6636;
+    --gold-500: #d9b64a;
+    --gold-600: #e8cd85;
+
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+    --shadow-glow: 0 0 0 1px rgba(251, 127, 58, 0.18), 0 10px 30px -10px rgba(251, 127, 58, 0.4);
+  }
+}
+
+/* Karanlık mod — kullanıcının açıkça seçtiği tema (bkz. ThemeToggle), sistem tercihinden bağımsız olarak her zaman kazanır. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --paper: #1b1611;
+  --paper-elevated: #262019;
+  --paper-sunken: #14100c;
+  --ink: #f3e8d6;
+  --ink-soft: #d9c6a3;
+  --ink-muted: #9c8a74;
+  --line: #382d22;
+  --line-strong: #4a3c2c;
+
+  --orange-50: #3a2314;
+  --orange-100: #4a2c16;
+  --orange-200: #6b3d1a;
+  --orange-300: #c96a30;
+  --orange-400: #ee8748;
+  --orange-500: #fb7f3a;
+  --orange-600: #ff9c5c;
+  --orange-700: #ffb27d;
+  --orange-800: #ffc79a;
+  --orange-900: #ffe4cc;
+
+  --club-felsefe: #b09fd6;
+  --club-bilimkurgu: #4fc9ba;
+  --club-siir: #e69ab5;
+  --club-distopya: #7fae99;
+
+  --success: #6fbb85;
+  --info: #7fb3dd;
+  --warning: #e0a752;
+  --danger: #e2726a;
+
+  --gold-300: #7a6636;
+  --gold-500: #d9b64a;
+  --gold-600: #e8cd85;
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+  --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+  --shadow-glow: 0 0 0 1px rgba(251, 127, 58, 0.18), 0 10px 30px -10px rgba(251, 127, 58, 0.4);
+}
+
 @theme inline {
   --color-paper: var(--paper);
   --color-paper-elevated: var(--paper-elevated);
@@ -103,10 +194,6 @@
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
   --radius-xl: var(--radius-xl);
-}
-
-html {
-  color-scheme: light;
 }
 
 body {

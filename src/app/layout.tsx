@@ -53,14 +53,27 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#f0611f",
-  colorScheme: "light",
+  colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
 };
 
+// Sayfa boyanmadan ÖNCE (hydration'dan da önce) çalışır — localStorage'ta
+// kayıtlı açık bir tema tercihi varsa <html data-theme> olarak uygular.
+// Böylece karanlık modu seçmiş bir kullanıcıda "önce açık, sonra karanlığa
+// geçiş" yanıp sönmesi (FOUC) yaşanmaz. Tercih yoksa hiçbir şey yapmaz —
+// CSS zaten prefers-color-scheme'i otomatik takip eder (bkz. globals.css).
+const themeInitScript = `try {
+  var t = localStorage.getItem("kitapmeetup:theme");
+  if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
+} catch (e) {}`;
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="tr" className={`${fraunces.variable} ${manrope.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-screen bg-[var(--paper)] text-[var(--ink)] antialiased">{children}</body>
     </html>
   );
